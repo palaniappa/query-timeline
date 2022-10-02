@@ -1,7 +1,7 @@
 {
-  "name": "typescript-webpack-boilerplate",
-  "title": "Typescript Webpack Boilerplate",
-  "description": "A starter template/boilerplate built with TypeScript/JavaScript, Babel, Webpack 5, PostCSS, Jest, ESLint, and Stylelint.",
+  "name": "query-timeline",
+  "title": "Query Timeline",
+  "description": "A simple UI to visualize the Trino query execution in timeline",
   "main": "",
   "url": "URL",
   "target": "web",
@@ -12,10 +12,7 @@
   "author": "Vijay Dubb",
   "repository": {
     "type": "git",
-    "url": "https://github.com/VD39/typescript-webpack-boilerplate.git"
-  },
-  "bugs": {
-    "url": "https://github.com/VD39/typescript-webpack-boilerplate/issues"
+    "url": "https://github.com/palaniappa/query-timeline.git"
   },
   "scripts": {
     "build": "webpack --progress --config webpack.config.babel.js",
@@ -106,5 +103,9 @@
     "> 5%",
     "not dead",
     "not IE < 11"
-  ]
+  ],
+  "dependencies": {
+    "@types/vis": "^4.21.24",
+    "vis": "^4.21.0-EOL"
+  }
 }
