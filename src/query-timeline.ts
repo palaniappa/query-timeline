@@ -68,22 +68,20 @@ export class QueryTimeline {
         };
         dataItems.push(dataItem);
 
-        if(options.showAll || options.selectedTaskId === t.getTaskId()) {
-          t.getPipelines().forEach( (p:Pipeline) => {
+        if (options.showAll || options.selectedTaskId === t.getTaskId()) {
+          t.getPipelines().forEach((p: Pipeline) => {
             let dataItem: DataItem = {
               id: 'PIPELINE:' + p.getPipelineId(),
               group: s.getStageLevel(),
               content: p.getPipelineId(),
               start: p.getStartTime(),
               end: p.getEndTime(),
-              title:
-                p.getPipelineId() + ',\n' + p.getStartTime() + ',\n' + p.getEndTime(),
+              title:this.getPipelineTooltip(p),
               className: 'blue',
             };
             dataItems.push(dataItem);
           });
         }
-
       }
     });
 
@@ -97,11 +95,32 @@ export class QueryTimeline {
     return currentLevel;
   }
 
+  private getPipelineTooltip(p: Pipeline) : string {
+    let details = '<tr><td>Total Scheduled Time</td>' + '<td> ' + p.getTotalScheduledTime() + '</td></tr>';
+    details = details + '<tr><td>Total CPU Time</td>' + '<td> ' + p.getTotalCpuTime() + '</td></tr>';
+    details = details +  '<tr><td>Total Blocked Time</td>' + '<td> ' + p.getTotalBlockedTime() + '</td></tr>';
+    details = details +  '<tr><td>Total Raw Input</td>' + '<td> ' + p.getRawInputPositions() + '</td></tr>';
+    details = details +  '<tr><td>Total Processed Input</td>' + '<td> ' + p.getProcessedInputPositions() + '</td></tr>';
+    details = details +  '<tr><td>Total Output</td>' + '<td>' + p.getOutputPositions() + '</td></tr>';
+    let tooltip = '<table>' + details + '</table>';
+    return tooltip;
+  }
+
   private processTask(t: any, task: Task): void {
-    if(t.stats.pipelines) {
-      t.stats.pipelines.forEach( (p:any) => {
-        let pipelineId = task.getTaskId() + "::" + p.pipelineId;
-        let pipeline = new Pipeline(pipelineId,new Date(p.firstStartTime), new Date(p.lastEndTime));
+    if (t.stats.pipelines) {
+      t.stats.pipelines.forEach((p: any) => {
+        let pipelineId = task.getTaskId() + '::' + p.pipelineId;
+        let pipeline = new Pipeline(
+          pipelineId,
+          new Date(p.firstStartTime),
+          new Date(p.lastEndTime),
+          p.totalScheduledTime,
+          p.totalCpuTime,
+          p.totalBlockedTime,
+          p.rawInputPositions,
+          p.processedInputPositions,
+          p.outputPositions,
+        );
         task.addPipeline(pipeline);
       });
     }
