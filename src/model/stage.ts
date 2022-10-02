@@ -11,7 +11,7 @@ export class Stage {
         this.stageId = stageId;
         this.level = level;
         this.startTime = new Date();
-        this.endTime = new Date();
+        this.endTime = new Date(1990,1,1,0,0,0,0);
     }
 
     public addTask(t: Task): void {
@@ -24,7 +24,7 @@ export class Stage {
 
         if(!this.endTime) {
             this.endTime = t.getEndTime();
-        } else if(this.endTime > t.getEndTime()) {
+        } else if(this.endTime < t.getEndTime()) {
             this.endTime = t.getEndTime();
         }
     }

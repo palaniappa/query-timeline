@@ -4,6 +4,7 @@ import { Query } from './model/query';
 import { Stage } from './model/stage';
 import { Task } from './model/task';
 import { queryJson } from './queryinfo';
+import { queryJson2 } from './queryInfo2';
 
 export class QueryTimeline {
   private getDataItems(query: Query, dataItems: DataItem[]): number {
@@ -21,7 +22,7 @@ export class QueryTimeline {
       content: s.getStageId(),
       start: s.getStartTime(),
       end: s.getEndTime(),
-      title: s.getStartTime() + "," + s.getEndTime(),
+      title: s.getStageId() + ",\n" + s.getStartTime() + ",\n" + s.getEndTime(),
     };
     dataItems.push(dataItem);
 
@@ -31,7 +32,7 @@ export class QueryTimeline {
         content: t.getTaskId(),
         start: t.getStartTime(),
         end: t.getEndTime(),
-        title: t.getStartTime() + "," + t.getEndTime(),
+        title: t.getTaskId() + ",\n" + t.getStartTime() + ",\n" + t.getEndTime(),
         className: 'green',
       };
       dataItems.push(dataItem)
@@ -67,12 +68,13 @@ export class QueryTimeline {
   }
 
   public processTimeline(): void {
+    let queryData:any = queryJson;
     const q: Query = new Query(
-      queryJson.queryId,
-      new Date(queryJson.queryStats.createTime),
-      new Date(queryJson.queryStats.endTime),
+      queryData.queryId,
+      new Date(queryData.queryStats.createTime),
+      new Date(queryData.queryStats.endTime),
     );
-    const outputStage: Stage = this.processStage(queryJson.outputStage, 0);
+    const outputStage: Stage = this.processStage(queryData.outputStage, 0);
     q.setOutputStage(outputStage);
 
     const dataItems: DataItem[] = [];
@@ -95,7 +97,11 @@ export class QueryTimeline {
         groupOrder: function (a: LevelGroup, b: LevelGroup) {
           return b.value - a.value;
         },
-        editable: true,
+        editable: false,
+        maxHeight: 800,
+        stack: true,
+        verticalScroll: true,
+        zoomKey: "ctrlKey",
       };
 
       const timeline = new Timeline(container, dataItems);
