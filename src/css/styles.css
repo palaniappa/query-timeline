@@ -5,3 +5,7 @@
     background-color: greenyellow;
     border-color: green;
   }
+  .vis-item.blue {
+    background-color: rgb(230, 173, 222);
+    border-color: rgb(255, 0, 247);
+  }

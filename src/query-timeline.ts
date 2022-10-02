@@ -5,47 +5,106 @@ import { Stage } from './model/stage';
 import { Task } from './model/task';
 import { queryJson } from './queryinfo';
 import { queryJson2 } from './queryInfo2';
+import { QueryTimelineOptions } from './model/queryTimelineOptions';
+import { Pipeline } from './model/pipeline';
 
 export class QueryTimeline {
-  private getDataItems(query: Query, dataItems: DataItem[]): number {
+  private query: Query | null = null;
+  private options: QueryTimelineOptions = new QueryTimelineOptions();
+  private timeline: Timeline | null = null;
+
+  constructor(options: QueryTimelineOptions) {
+    this.options = options;
+  }
+  private getDataItems(
+    query: Query,
+    dataItems: DataItem[],
+    options: QueryTimelineOptions,
+  ): number {
     let s: Stage | null = query.getOutputStage();
     if (s) {
-      return this.processStageForDataItem(s, dataItems);
+      return this.processStageForDataItem(s, dataItems, options);
     }
     return 0;
   }
 
-  private processStageForDataItem(s: Stage, dataItems: DataItem[]): number {
+  private processStageForDataItem(
+    s: Stage,
+    dataItems: DataItem[],
+    options: QueryTimelineOptions,
+  ): number {
     let currentLevel = s.getStageLevel();
-    let dataItem: DataItem = {
-      group: s.getStageLevel(),
-      content: s.getStageId(),
-      start: s.getStartTime(),
-      end: s.getEndTime(),
-      title: s.getStageId() + ",\n" + s.getStartTime() + ",\n" + s.getEndTime(),
-    };
-    dataItems.push(dataItem);
-
-    s.getTasks().forEach( (t:Task) => {
+    if (
+      options.showAll ||
+      options.showOnlyStages ||
+      options.selectedStageId === s.getStageId()
+    ) {
       let dataItem: DataItem = {
+        id: 'STAGE:' + s.getStageId(),
         group: s.getStageLevel(),
-        content: t.getTaskId(),
-        start: t.getStartTime(),
-        end: t.getEndTime(),
-        title: t.getTaskId() + ",\n" + t.getStartTime() + ",\n" + t.getEndTime(),
-        className: 'green',
+        content: s.getStageId(),
+        start: s.getStartTime(),
+        end: s.getEndTime(),
+        title:
+          s.getStageId() + ',\n' + s.getStartTime() + ',\n' + s.getEndTime(),
       };
-      dataItems.push(dataItem)
+      dataItems.push(dataItem);
+    }
+    s.getTasks().forEach((t: Task) => {
+      if (
+        options.showAll ||
+        options.selectedStageId === s.getStageId() ||
+        options.selectedTaskId === t.getTaskId()
+      ) {
+        let dataItem: DataItem = {
+          id: 'TASK:' + t.getTaskId(),
+          group: s.getStageLevel(),
+          content: t.getTaskId(),
+          start: t.getStartTime(),
+          end: t.getEndTime(),
+          title:
+            t.getTaskId() + ',\n' + t.getStartTime() + ',\n' + t.getEndTime(),
+          className: 'green',
+        };
+        dataItems.push(dataItem);
+
+        if(options.showAll || options.selectedTaskId === t.getTaskId()) {
+          t.getPipelines().forEach( (p:Pipeline) => {
+            let dataItem: DataItem = {
+              id: 'PIPELINE:' + p.getPipelineId(),
+              group: s.getStageLevel(),
+              content: p.getPipelineId(),
+              start: p.getStartTime(),
+              end: p.getEndTime(),
+              title:
+                p.getPipelineId() + ',\n' + p.getStartTime() + ',\n' + p.getEndTime(),
+              className: 'blue',
+            };
+            dataItems.push(dataItem);
+          });
+        }
+
+      }
     });
 
     s.getSubStages().forEach((subStage: Stage) => {
-      let newLevel = this.processStageForDataItem(subStage, dataItems);
+      let newLevel = this.processStageForDataItem(subStage, dataItems, options);
       if (newLevel > currentLevel) {
         currentLevel = newLevel;
       }
     });
 
     return currentLevel;
+  }
+
+  private processTask(t: any, task: Task): void {
+    if(t.stats.pipelines) {
+      t.stats.pipelines.forEach( (p:any) => {
+        let pipelineId = task.getTaskId() + "::" + p.pipelineId;
+        let pipeline = new Pipeline(pipelineId,new Date(p.firstStartTime), new Date(p.lastEndTime));
+        task.addPipeline(pipeline);
+      });
+    }
   }
 
   private processStage(s: any, level: number): Stage {
@@ -57,6 +116,7 @@ export class QueryTimeline {
         new Date(t.stats.lastEndTime),
       );
       stage.addTask(task);
+      this.processTask(t, task);
     });
     if (s.subStages) {
       s.subStages.forEach((s1: any) => {
@@ -67,47 +127,90 @@ export class QueryTimeline {
     return stage;
   }
 
-  public processTimeline(): void {
-    let queryData:any = queryJson;
-    const q: Query = new Query(
+  public processQuery(): void {
+    let queryData: any = queryJson;
+    this.query = new Query(
       queryData.queryId,
       new Date(queryData.queryStats.createTime),
       new Date(queryData.queryStats.endTime),
     );
     const outputStage: Stage = this.processStage(queryData.outputStage, 0);
-    q.setOutputStage(outputStage);
+    this.query.setOutputStage(outputStage);
+  }
 
-    const dataItems: DataItem[] = [];
-    let maxNumber = this.getDataItems(q, dataItems);
+  public processTimeline(): void {
+    if (this.query) {
+      const dataItems: DataItem[] = [];
+      let maxNumber = this.getDataItems(this.query, dataItems, this.options);
 
-    const levelGroups: LevelGroup[] = [];
-    for (let i = 0; i <= maxNumber; ++i) {
-      let newLevel: LevelGroup = {
-        id: i,
-        content: 'Level ' + i,
-        value: i,
-      };
-      levelGroups.push(newLevel);
+      const levelGroups: LevelGroup[] = [];
+      for (let i = 0; i <= maxNumber; ++i) {
+        let newLevel: LevelGroup = {
+          id: i,
+          content: 'Level ' + i,
+          value: i,
+        };
+        levelGroups.push(newLevel);
+      }
+
+      // create visualization
+      const container: HTMLElement | null = document.getElementById('timeline');
+      if (container != null) {
+        const options = {
+          groupOrder: function (a: LevelGroup, b: LevelGroup) {
+            return b.value - a.value;
+          },
+          editable: false,
+          maxHeight: 800,
+          maxWidth: 600,
+          stack: true,
+          verticalScroll: true,
+          zoomKey: 'ctrlKey',
+          horizontalScroll: true,
+        };
+
+        if (this.timeline == null) {
+          this.timeline = new Timeline(container, dataItems);
+          this.timeline.setOptions(options);
+          this.timeline.on('click', this.onItemSelected.bind(this));
+        }
+
+        this.timeline.setGroups(levelGroups);
+        this.timeline.setItems(dataItems);
+      }
     }
+  }
 
-    // create visualization
-    const container: HTMLElement | null = document.getElementById('timeline');
-    if (container != null) {
-      const options = {
-        groupOrder: function (a: LevelGroup, b: LevelGroup) {
-          return b.value - a.value;
-        },
-        editable: false,
-        maxHeight: 800,
-        stack: true,
-        verticalScroll: true,
-        zoomKey: "ctrlKey",
-      };
+  public onItemSelected(properties: any) {
+    if (properties.item) {
+      this.options.showOnlyStages = false;
+      this.options.showAll = false;
+      this.options.selectedStageId = '';
+      this.options.selectedTaskId = '';
 
-      const timeline = new Timeline(container, dataItems);
-      timeline.setOptions(options);
-      timeline.setGroups(levelGroups);
-      timeline.setItems(dataItems);
+      console.log(properties.item);
+      let selectedItemDetail = properties.item.split(':');
+      if (selectedItemDetail[0] === 'STAGE') {
+        this.options.selectedStageId = selectedItemDetail[1];
+      } else if (selectedItemDetail[0] === 'TASK') {
+        this.options.selectedTaskId = selectedItemDetail[1];
+      }
     }
+    this.processTimeline();
+  }
+
+  public showAll(): void {
+    this.options.showAll = true;
+    this.options.showOnlyStages = false;
+    this.options.selectedTaskId = '';
+    this.options.selectedStageId = '';
+    this.processTimeline();
+  }
+  public showOnlyStages(): void {
+    this.options.showAll = false;
+    this.options.showOnlyStages = true;
+    this.options.selectedTaskId = '';
+    this.options.selectedStageId = '';
+    this.processTimeline();
   }
 }
