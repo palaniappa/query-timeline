@@ -1,3 +1,7 @@
 /* Import all base styles. */
 @import './all/all.css';
 @import 'vis/dist/vis-timeline-graph2d.min.css';
+.vis-item.green {
+    background-color: greenyellow;
+    border-color: green;
+  }
