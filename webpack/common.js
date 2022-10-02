@@ -28,8 +28,8 @@ const output = {
 const plugins = [
   htmlWebpackPlugin,
   copyWebpackPlugin,
-  eSLintWebpackPlugin,
-  styleLintWebpackPlugin,
+  // eSLintWebpackPlugin,
+  // styleLintWebpackPlugin,
 ];
 
 /**
