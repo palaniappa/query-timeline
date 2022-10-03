@@ -5,6 +5,7 @@ import { Stage } from './model/stage';
 import { Task } from './model/task';
 import { queryJson } from './queryinfo';
 import { queryJson2 } from './queryInfo2';
+import { queryJson3 } from './queryInfo3';
 import { QueryTimelineOptions } from './model/queryTimelineOptions';
 import { Pipeline } from './model/pipeline';
 
@@ -12,9 +13,11 @@ export class QueryTimeline {
   private query: Query | null = null;
   private options: QueryTimelineOptions = new QueryTimelineOptions();
   private timeline: Timeline | null = null;
+  private queryJsonObject: any = null;
 
   constructor(options: QueryTimelineOptions) {
     this.options = options;
+    this.queryJsonObject = queryJson3;
   }
   private getDataItems(
     query: Query,
@@ -146,8 +149,21 @@ export class QueryTimeline {
     return stage;
   }
 
+  public setQueryJson(queryJson: any):void {
+    this.queryJsonObject = queryJson;
+  }
+
   public processQuery(): void {
-    let queryData: any = queryJson;
+    if(this.timeline) {
+      this.timeline.destroy();
+      this.options.showOnlyStages = true;
+      this.options.showAll = false;
+      this.options.selectedTaskId='';
+      this.options.selectedPipelineId='';
+      this.options.selectedStageId='';
+    }
+    this.timeline = null;
+    let queryData: any = this.queryJsonObject;
     this.query = new Query(
       queryData.queryId,
       new Date(queryData.queryStats.createTime),
@@ -181,7 +197,6 @@ export class QueryTimeline {
           },
           editable: false,
           maxHeight: 800,
-          maxWidth: 600,
           stack: true,
           verticalScroll: true,
           zoomKey: 'ctrlKey',
